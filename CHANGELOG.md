@@ -5,6 +5,14 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.20] - 2026-03-05
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.13` for unified VAE decoder layout compatibility.
+
+### Fixed
+- Decoder channel mismatch crashes now resolved via upstream `mlx-video-with-audio` 0.1.13.
+
 ## [2.3.11] - 2026-02-23
 
 ### Fixed
