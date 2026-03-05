@@ -144,8 +144,6 @@ Right-click any video thumbnail in **Video Archive** and select **Add Audio** to
 
 Here's an example video generated with LTX Video Generator:
 
-[![ChronoShift example output thumbnail](docs/images/example-chronoshift-thumbnail.png)](https://github.com/user-attachments/assets/82031683-1763-4dff-97f9-c2b6d38f7ee8)
-
 [Open video link](https://github.com/user-attachments/assets/82031683-1763-4dff-97f9-c2b6d38f7ee8)
 
 **Prompt used:**
