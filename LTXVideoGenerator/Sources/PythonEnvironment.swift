@@ -23,8 +23,8 @@ struct PythonDetails {
     }
 }
 
-/// Minimum mlx-video-with-audio version (unified model fix, no Lightricks download)
-private let mlxVideoMinVersion = "0.1.7"
+/// Minimum mlx-video-with-audio version (auto-use cached text encoder, smaller default)
+private let mlxVideoMinVersion = "0.1.8"
 
 /// Manages Python environment detection and validation
 /// Uses subprocess-based validation to avoid PythonKit crashes
