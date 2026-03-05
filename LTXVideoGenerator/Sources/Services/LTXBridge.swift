@@ -315,94 +315,88 @@ except Exception as e:
             }
             
             DispatchQueue.main.async {
-                // Parse structured progress output from generate.py
-                // Format: STAGE:X:STEP:Y:Z:message or STATUS:message or DOWNLOAD:START/COMPLETE:repo
-                
-                if stderr.hasPrefix("STAGE:") {
-                    // Parse stage-aware progress: STAGE:1:STEP:3:8:Denoising
-                    // Stage 1 maps to 0.1-0.5, Stage 2 maps to 0.5-0.9
-                    let parts = stderr.components(separatedBy: ":")
-                    if parts.count >= 5,
-                       let stage = Int(parts[1]),
-                       let step = Int(parts[3]),
-                       let total = Int(parts[4]) {
-                        let stageProgress = Double(step) / Double(total)
-                        let mappedProgress: Double
-                        let message: String
-                        
-                        if stage == 1 {
-                            // Stage 1: 0.1 to 0.5 (half resolution)
-                            mappedProgress = 0.1 + (stageProgress * 0.4)
-                            message = "Stage 1 (\(step)/\(total)): Generating at half resolution"
+                // Parse line-by-line so chunked stderr reads never lose progress updates.
+                for raw in stderr.components(separatedBy: "\n") {
+                    let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if line.isEmpty { continue }
+                    
+                    if line.hasPrefix("STAGE:") {
+                        // Parse stage-aware progress: STAGE:1:STEP:3:8:Denoising
+                        let parts = line.components(separatedBy: ":")
+                        if parts.count >= 5,
+                           let stage = Int(parts[1]),
+                           let step = Int(parts[3]),
+                           let total = Int(parts[4]) {
+                            let stageProgress = Double(step) / Double(total)
+                            let mappedProgress: Double
+                            let message: String
+                            
+                            if stage == 1 {
+                                mappedProgress = 0.1 + (stageProgress * 0.4)
+                                message = "Stage 1 (\(step)/\(total)): Generating at half resolution"
+                            } else {
+                                mappedProgress = 0.5 + (stageProgress * 0.4)
+                                message = "Stage 2 (\(step)/\(total)): Refining at full resolution"
+                            }
+                            progressHandler(mappedProgress, message)
+                        }
+                    } else if line.hasPrefix("STATUS:") {
+                        let message = String(line.dropFirst(7))
+                        if message.contains("Stage 1") {
+                            progressHandler(0.1, message)
+                        } else if message.contains("Stage 2") || message.contains("Upsampling") {
+                            progressHandler(0.5, message)
+                        } else if message.contains("Decoding") {
+                            progressHandler(0.9, message)
+                        } else if message.contains("Saving") {
+                            progressHandler(0.95, message)
+                        } else if message.contains("Loading") {
+                            progressHandler(0.08, message)
                         } else {
-                            // Stage 2: 0.5 to 0.9 (full resolution)
-                            mappedProgress = 0.5 + (stageProgress * 0.4)
-                            message = "Stage 2 (\(step)/\(total)): Refining at full resolution"
+                            progressHandler(0.05, message)
                         }
-                        progressHandler(mappedProgress, message)
-                    }
-                } else if stderr.hasPrefix("STATUS:") {
-                    // Parse status message: STATUS:Loading model...
-                    let message = String(stderr.dropFirst(7))
-                    if message.contains("Stage 1") {
-                        progressHandler(0.1, message)
-                    } else if message.contains("Stage 2") || message.contains("Upsampling") {
-                        progressHandler(0.5, message)
-                    } else if message.contains("Decoding") {
-                        progressHandler(0.9, message)
-                    } else if message.contains("Saving") {
-                        progressHandler(0.95, message)
-                    } else if message.contains("Loading") {
-                        progressHandler(0.08, message)
-                    } else {
-                        progressHandler(0.05, message)
-                    }
-                } else if stderr.hasPrefix("MODEL:CACHED:") {
-                    let repo = String(stderr.dropFirst(13))
-                    progressHandler(0.08, "Model cached: \(repo)")
-                } else if stderr.hasPrefix("DOWNLOAD:START:") {
-                    let repo = String(stderr.dropFirst(15))
-                    progressHandler(0.01, "Downloading model: \(repo)")
-                } else if stderr.hasPrefix("DOWNLOAD:PROGRESS:") {
-                    // Format: DOWNLOAD:PROGRESS:currentBytes:totalBytes:pct%
-                    let parts = stderr.dropFirst(18).split(separator: ":")
-                    if parts.count >= 3 {
-                        let currentBytes = Double(parts[0]) ?? 0
-                        let totalBytes = Double(parts[1]) ?? 1
-                        let pctStr = String(parts[2]).replacingOccurrences(of: "%", with: "")
-                        let pct = Int(pctStr) ?? 0
-                        // Convert bytes to GB for display
-                        let currentGB = currentBytes / 1_000_000_000
-                        let totalGB = totalBytes / 1_000_000_000
-                        // Map download progress to 1-8% of total progress
-                        let mappedProgress = 0.01 + (Double(pct) / 100.0 * 0.07)
-                        progressHandler(mappedProgress, String(format: "Downloading: %.1fGB / %.1fGB (%d%%)", currentGB, totalGB, pct))
-                    }
-                } else if stderr.hasPrefix("DOWNLOAD:COMPLETE:") {
-                    progressHandler(0.08, "Model download complete")
-                } else if stderr.contains("Downloading") || stderr.contains("Fetching") {
-                    // huggingface_hub tqdm: "Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]"
-                    // Per-file bytes: "model.safetensors:  45%|████▌     | 2.3G/5.1G" - parse bytes if present
-                    let fileCountPattern = #/(\d+)%\|[^|]*\|\s*(\d+)/(\d+)/#
-                    if let match = stderr.firstMatch(of: fileCountPattern) {
-                        let currentFile = Int(match.2) ?? 0
-                        let totalFiles = Int(match.3) ?? 1
-                        var filePercent = Double(currentFile) / Double(max(totalFiles, 1))
-                        var message = "Downloading: \(currentFile)/\(totalFiles) files"
-                        // Bytes progress: "| 2.3G/5.1G" or "| 45MB/100MB"
-                        if let bytesMatch = stderr.firstMatch(of: #/\|\s*([\d.]+)([KMG]?)B?\/([\d.]+)([KMG]?)B?/#) {
-                            let curVal = Double(bytesMatch.1) ?? 0
-                            let totVal = Double(bytesMatch.3) ?? 1
-                            let unit = String(bytesMatch.2)
-                            let scale: Double = unit == "G" ? 1 : (unit == "M" ? 0.001 : 0.000001)
-                            let curGB = curVal * scale
-                            let totGB = totVal * scale
-                            let pct = totVal > 0 ? Int(100 * curVal / totVal) : 0
-                            filePercent = (Double(currentFile) + Double(pct) / 100.0) / Double(max(totalFiles, 1))
-                            message = String(format: "Downloading: %.1fGB / %.1fGB (file %d/%d, %d%%)", curGB, totGB, currentFile + 1, totalFiles, pct)
+                    } else if line.hasPrefix("MODEL:CACHED:") {
+                        let repo = String(line.dropFirst(13))
+                        progressHandler(0.08, "Model cached: \(repo)")
+                    } else if line.hasPrefix("DOWNLOAD:START:") {
+                        let repo = String(line.dropFirst(15))
+                        progressHandler(0.01, "Downloading model: \(repo)")
+                    } else if line.hasPrefix("DOWNLOAD:PROGRESS:") {
+                        let parts = line.dropFirst(18).split(separator: ":")
+                        if parts.count >= 3 {
+                            let currentBytes = Double(parts[0]) ?? 0
+                            let totalBytes = Double(parts[1]) ?? 1
+                            let pctStr = String(parts[2]).replacingOccurrences(of: "%", with: "")
+                            let pct = Int(pctStr) ?? 0
+                            let currentGB = currentBytes / 1_000_000_000
+                            let totalGB = totalBytes / 1_000_000_000
+                            let mappedProgress = 0.01 + (Double(pct) / 100.0 * 0.07)
+                            progressHandler(mappedProgress, String(format: "Downloading: %.1fGB / %.1fGB (%d%%)", currentGB, totalGB, pct))
                         }
-                        let mappedProgress = 0.01 + (filePercent * 0.07)
-                        progressHandler(mappedProgress, message)
+                    } else if line.hasPrefix("DOWNLOAD:COMPLETE:") {
+                        progressHandler(0.08, "Model download complete")
+                    } else if line.contains("Downloading") || line.contains("Fetching") {
+                        // huggingface_hub tqdm output
+                        let fileCountPattern = #/(\d+)%\|[^|]*\|\s*(\d+)/(\d+)/#
+                        if let match = line.firstMatch(of: fileCountPattern) {
+                            let currentFile = Int(match.2) ?? 0
+                            let totalFiles = Int(match.3) ?? 1
+                            var filePercent = Double(currentFile) / Double(max(totalFiles, 1))
+                            var message = "Downloading: \(currentFile)/\(totalFiles) files"
+                            if let bytesMatch = line.firstMatch(of: #/\|\s*([\d.]+)([KMG]?)B?\/([\d.]+)([KMG]?)B?/#) {
+                                let curVal = Double(bytesMatch.1) ?? 0
+                                let totVal = Double(bytesMatch.3) ?? 1
+                                let unit = String(bytesMatch.2)
+                                let scale: Double = unit == "G" ? 1 : (unit == "M" ? 0.001 : 0.000001)
+                                let curGB = curVal * scale
+                                let totGB = totVal * scale
+                                let pct = totVal > 0 ? Int(100 * curVal / totVal) : 0
+                                filePercent = (Double(currentFile) + Double(pct) / 100.0) / Double(max(totalFiles, 1))
+                                message = String(format: "Downloading: %.1fGB / %.1fGB (file %d/%d, %d%%)", curGB, totGB, currentFile + 1, totalFiles, pct)
+                            }
+                            let mappedProgress = 0.01 + (filePercent * 0.07)
+                            progressHandler(mappedProgress, message)
+                        }
                     }
                 }
             }
@@ -558,7 +552,6 @@ except Exception as e:
                     if !data.isEmpty, let str = String(data: data, encoding: .utf8) {
                         stderrLock.lock()
                         stderrAccumulated += str
-                        let accumulated = stderrAccumulated
                         stderrLock.unlock()
                         
                         if let logData = ("[STDERR] " + str).data(using: .utf8) {
@@ -573,7 +566,8 @@ except Exception as e:
                             }
                         }
                         
-                        stderrHandler?(accumulated)
+                        // Send only the latest chunk; caller parses line-by-line.
+                        stderrHandler?(str)
                     }
                 }
                 

@@ -23,8 +23,8 @@ struct PythonDetails {
     }
 }
 
-/// Minimum mlx-video-with-audio version (fix import validation regression)
-private let mlxVideoMinVersion = "0.1.11"
+/// Minimum mlx-video-with-audio version (connector mapping + validation fixes)
+private let mlxVideoMinVersion = "0.1.12"
 
 /// Manages Python environment detection and validation
 /// Uses subprocess-based validation to avoid PythonKit crashes
