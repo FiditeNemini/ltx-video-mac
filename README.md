@@ -144,21 +144,22 @@ Right-click any video thumbnail in **Video Archive** and select **Add Audio** to
 
 Here's an example video generated with LTX Video Generator:
 
-https://github.com/user-attachments/assets/82031683-1763-4dff-97f9-c2b6d38f7ee8
+[![ChronoShift example output thumbnail](docs/images/example-chronoshift-thumbnail.png)](https://github.com/user-attachments/assets/82031683-1763-4dff-97f9-c2b6d38f7ee8)
 
-
+[Open video link](https://github.com/user-attachments/assets/82031683-1763-4dff-97f9-c2b6d38f7ee8)
 
 **Prompt used:**
 > Create a 15-second cinematic product commercial for a sleek, premium TIME MACHINE device called "ChronoShift One."
-> 
+>
 > Overall style: glossy tech product ad, filmed in 4K, smooth dolly and slider shots, soft studio lighting, subtle retro‑futuristic aesthetic (think brushed aluminum, glowing rings, clean UI). The time machine looks like a compact desktop appliance about the size of a toaster: brushed metal body, circular time dial with glowing blue light, small display, and a single illuminated control knob.
 
-### Example (Embedded X/Twitter Post)
+### Example (X/Twitter Link)
 
 And a second run produced this one:
 
-<blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en" dir="ltr">And a second run produced this one. Not bad. <a href="https://t.co/8TunejYCSb">pic.twitter.com/8TunejYCSb</a></p>&mdash; jc (@jc50000000) <a href="https://twitter.com/jc50000000/status/2029412416472203277?ref_src=twsrc%5Etfw">March 5, 2026</a></blockquote>
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+[![Lakeside memory example output thumbnail](docs/images/example-memory-thumbnail.png)](https://twitter.com/jc50000000/status/2029412416472203277)
+
+[Open X/Twitter post](https://twitter.com/jc50000000/status/2029412416472203277)
 
 **Prompt used:**
 > Scene tone: quiet, reflective, fragmented memory. Cinematic realism, muted natural colors. Overcast but DRY weather. No rain, no raindrops, no wet falling precipitation.
