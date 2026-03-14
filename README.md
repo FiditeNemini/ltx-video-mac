@@ -87,10 +87,12 @@ When enabled in **Settings > Generation**, Gemma rewrites your prompt before gen
 
 1. Go to **Settings > Generation**
 2. Turn on **Enable Gemma Prompt Enhancement**
-3. Optionally turn on **Use uncensored enhancer** to avoid content filters (first run downloads ~7GB)
+3. First run downloads the Gemma enhancer (~7GB)
 4. In the prompt view, expand **Prompt Enhancement (Gemma)** and adjust sliders (Repetition Penalty, Top-P) if desired
 5. Click **Preview enhanced prompt** to see the enhanced version before generating
 6. Generate as usual—the enhanced prompt is used automatically
+
+If enhancement fails for any reason, generation automatically falls back to your original prompt.
 
 ### Tips for Better Results
 
@@ -104,6 +106,8 @@ When enabled in **Settings > Generation**, Gemma rewrites your prompt before gen
 ### Built-in Audio (Default)
 
 The default unified model (`notapalindrome/ltx2-mlx-av`) generates synchronized audio alongside video automatically. No additional configuration needed - just generate and your video will have audio!
+
+For best speech/lip-sync alignment, use **24 FPS**.
 
 You can still layer additional voiceover or background music on top of the built-in audio if desired.
 
@@ -231,6 +235,11 @@ The download progress updates every 1%. For the 42GB unified model, each percent
 - Install Python via Homebrew: `brew install python@3.12`
 - Or use pyenv: `pyenv install 3.12`
 - Then click "Auto Detect" in Preferences
+
+### "LTX 2.3 conversion / LoRA compatibility"
+- This app currently targets the unified AV workflow around `notapalindrome/ltx2-mlx-av`.
+- Converting new upstream checkpoints (for example LTX 2.3 variants) can require package-level updates in `mlx-video-with-audio` before they run reliably here.
+- Standard LTX LoRA workflows are not guaranteed to transfer directly to the MLX-converted AV path without conversion tooling support.
 
 ## License
 

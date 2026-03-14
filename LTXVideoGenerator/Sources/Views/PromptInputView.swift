@@ -506,6 +506,16 @@ struct PromptInputView: View {
                 .menuStyle(.borderlessButton)
                 .frame(width: 44)
             }
+
+            if !disableAudio && parameters.fps != 24 {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.orange)
+                    Text("Sync speech works best at 24 fps. Current setting: \(parameters.fps) fps.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             
             // Status
             if generationService.isProcessing {

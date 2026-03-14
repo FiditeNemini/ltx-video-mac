@@ -96,6 +96,7 @@ Playback speed of the generated video.
 - 24 FPS: Cinematic feel
 - 30 FPS: Smooth motion
 - 12 FPS: Animation style
+- For synchronized speech/lip-sync, use 24 FPS
 
 ---
 

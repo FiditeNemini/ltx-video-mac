@@ -262,7 +262,7 @@ struct PreferencesView: View {
                 Section("Prompt Enhancement") {
                     Toggle("Enable Prompt Enhancement", isOn: $enableGemmaPromptEnhancement)
                         .help("When on, Gemma rewrites your prompt with vivid details (lighting, camera, audio) before generation. Use Preview in the prompt view to see the enhanced prompt first.")
-                    Text("Uses Gemma to rewrite prompts with vivid details for better video generation. First run downloads ~7GB. Requires mlx-video-with-audio.")
+                    Text("Uses Gemma to rewrite prompts with vivid details for better video generation. First run downloads ~7GB. If enhancement fails, generation automatically continues with your original prompt.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

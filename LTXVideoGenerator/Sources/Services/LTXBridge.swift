@@ -128,9 +128,41 @@ class LTXBridge {
         let isImageToVideo = request.isImageToVideo
         let modeDescription = isImageToVideo ? "image-to-video" : "text-to-video"
         progressHandler(0.1, "Starting \(modeDescription) with audio (\(LTXModelVariant.displayName))...")
+        if !request.disableAudio && params.fps != 24 {
+            progressHandler(0.1, "Sync tip: speech alignment works best at 24 FPS (current: \(params.fps))")
+        }
         
+        let enableGemmaPromptEnhancement = UserDefaults.standard.bool(forKey: "enableGemmaPromptEnhancement")
+        let saveAudioTrackSeparately = UserDefaults.standard.bool(forKey: "saveAudioTrackSeparately")
+
+        // Apply prompt enhancement up-front so generation can continue safely even
+        // when upstream enhancer internals fail.
+        var preEnhancedPrompt: String? = nil
+        var generationPrompt = request.prompt
+        if enableGemmaPromptEnhancement {
+            progressHandler(0.06, "Enhancing prompt...")
+            do {
+                if let enhanced = try await previewEnhancedPrompt(
+                    prompt: request.prompt,
+                    modelRepo: modelRepo,
+                    temperature: request.gemmaTopP,
+                    sourceImagePath: request.sourceImagePath
+                ) { status in
+                    progressHandler(0.06, status)
+                }, !enhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    generationPrompt = enhanced
+                    preEnhancedPrompt = enhanced
+                    progressHandler(0.07, "Prompt enhanced with Gemma")
+                } else {
+                    progressHandler(0.07, "Prompt enhancement returned empty text; using original prompt")
+                }
+            } catch {
+                progressHandler(0.07, "Prompt enhancement failed; using original prompt")
+            }
+        }
+
         // Escape the prompt for Python
-        let escapedPrompt = request.prompt
+        let escapedPrompt = generationPrompt
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\n", with: "\\n")
@@ -150,8 +182,6 @@ class LTXBridge {
         let resourcesPath = Bundle.main.bundlePath + "/Contents/Resources"
         
         let script: String
-        let enableGemmaPromptEnhancement = UserDefaults.standard.bool(forKey: "enableGemmaPromptEnhancement")
-        let saveAudioTrackSeparately = UserDefaults.standard.bool(forKey: "saveAudioTrackSeparately")
         // LTX-2 Unified - uses mlx-video-with-audio package
         script = """
 import os
@@ -194,27 +224,6 @@ try:
     if use_wrapper and not os.path.exists(wrapper_script):
         raise FileNotFoundError(f"Missing bundled script: {wrapper_script}")
     
-    # Add prompt enhancement only when enabled in Settings
-    enable_enhancement = \(enableGemmaPromptEnhancement ? "True" : "False")
-    if enable_enhancement and not use_wrapper:
-        # Pre-flight: copy bundled prompts into mlx_video if missing (pip package omits them)
-        try:
-            from pathlib import Path
-            import shutil
-            resources_dir = Path(resources_path)
-            bundled_prompts = resources_dir / "prompts"
-            import mlx_video.models.ltx.text_encoder as te
-            target_dir = Path(te.__file__).parent / "prompts"
-            for name in ["gemma_t2v_system_prompt.txt", "gemma_i2v_system_prompt.txt"]:
-                src = bundled_prompts / name
-                dst = target_dir / name
-                if src.exists() and not dst.exists():
-                    target_dir.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(src, dst)
-                    log(f"Injected missing prompt: {name}")
-        except Exception as inj_err:
-            log(f"Warning: could not inject prompts: {inj_err}")
-    
     # Build command; use bundled wrapper when no-audio is requested
     if use_wrapper:
         cmd = [
@@ -230,12 +239,8 @@ try:
             "--tiling", "\(params.vaeTilingMode)",
             "--no-audio",
         ]
-        if enable_enhancement:
-            cmd.extend(["--repetition-penalty", str(\(request.gemmaRepetitionPenalty))])
-            cmd.extend(["--top-p", str(\(request.gemmaTopP))])
         log(f"Mode: {mode} (audio disabled)")
     else:
-        # Note: mlx_video.generate_av CLI uses --enhance-prompt/--temperature
         cmd = [
             sys.executable, "-m", "mlx_video.generate_av",
             "--prompt", prompt,
@@ -248,10 +253,6 @@ try:
             "--model-repo", model_repo,
             "--tiling", "\(params.vaeTilingMode)",
         ]
-        if enable_enhancement:
-            cmd.append("--enhance-prompt")
-            cmd.append("--use-uncensored-enhancer")
-            cmd.extend(["--temperature", str(\(request.gemmaTopP))])
         log(f"Mode: {mode} (with audio)")
     
     # Add image conditioning if provided
@@ -373,7 +374,7 @@ except Exception as e:
         
         // Thread-safe capture of enhanced prompt from stderr
         let enhancedPromptLock = NSLock()
-        var capturedEnhancedPrompt: String? = nil
+        var capturedEnhancedPrompt: String? = preEnhancedPrompt
         let failureHintLock = NSLock()
         var capturedFailureHint: String? = nil
         
@@ -557,7 +558,7 @@ except Exception as e:
             args.append(contentsOf: ["--image", img])
         }
         progressHandler("Loading prompt enhancer (first run may download ~7GB)...")
-        let output = try await runPythonScript(executable: python, arguments: args, timeout: 120)
+        let output = try await runPythonScript(executable: python, arguments: args, timeout: 300)
         if let data = output.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if let enhanced = json["enhanced_prompt"] as? String, !enhanced.isEmpty {

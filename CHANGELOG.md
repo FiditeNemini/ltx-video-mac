@@ -5,6 +5,22 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.23] - 2026-03-14
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.14` (native prompt-enhancer fallback + `ENHANCER_FALLBACK` token support).
+- Startup Python validation/auto-upgrade flow now enforces the new minimum version automatically via existing package checks.
+
+## [2.3.22] - 2026-03-14
+
+### Fixed
+- **Issue #21 – Prompt enhancement stability** - Prompt enhancement is now resolved before generation and failures automatically fall back to the original prompt instead of failing the run.
+
+### Changed
+- **Issue #21 – 24 FPS speech sync guardrail** - Added UI guidance and runtime status hints that synchronized speech/lip-sync works best at 24 FPS.
+- Prompt enhancement preference text now explicitly states fallback behavior when enhancement fails.
+- README + parameter docs updated with 24 FPS sync guidance and current LTX 2.3 conversion/LoRA support boundaries.
+
 ## [2.3.21] - 2026-03-13
 
 ### Fixed

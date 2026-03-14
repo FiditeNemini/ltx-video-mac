@@ -160,6 +160,20 @@ struct ParametersView: View {
                             Text("30 fps").tag(30)
                         }
                         .pickerStyle(.segmented)
+
+                        Text("Synchronized speech works best at 24 fps.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        if parameters.fps != 24 {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text("Non-24 fps can reduce speech/lip-sync quality.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     
                     // Video length estimate
