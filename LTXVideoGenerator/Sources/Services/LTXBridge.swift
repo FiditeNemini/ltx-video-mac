@@ -411,6 +411,15 @@ except Exception as e:
                         failureHintLock.lock()
                         capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf login` in Terminal if using gated models; then retry. To download the model manually, use: hf download notapalindrome/ltx2-mlx-av (saves to ~/.cache/huggingface)."
                         failureHintLock.unlock()
+                    } else if line.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
+                        let detail = String(line.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                        failureHintLock.lock()
+                        capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.15\" and retry."
+                        failureHintLock.unlock()
+                    } else if lower.contains("keyerror: 'text_config'") {
+                        failureHintLock.lock()
+                        capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.15\" and retry."
+                        failureHintLock.unlock()
                     } else if lower.contains("valueerror: [conv] expect the input channels") {
                         failureHintLock.lock()
                         capturedFailureHint = "Detected MLX VAE channel mismatch during decoding. This is an upstream `mlx-video-with-audio` model/package issue; please update the package and retry."

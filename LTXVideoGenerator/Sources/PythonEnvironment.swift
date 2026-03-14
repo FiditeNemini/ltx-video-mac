@@ -23,8 +23,8 @@ struct PythonDetails {
     }
 }
 
-/// Minimum mlx-video-with-audio version (native enhancer fallback + structured fallback token)
-private let mlxVideoMinVersion = "0.1.14"
+/// Minimum mlx-video-with-audio version (text encoder config guard + structured diagnostics)
+private let mlxVideoMinVersion = "0.1.15"
 
 /// Manages Python environment detection and validation
 /// Uses subprocess-based validation to avoid PythonKit crashes

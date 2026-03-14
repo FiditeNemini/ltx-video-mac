@@ -5,6 +5,14 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.24] - 2026-03-14
+
+### Fixed
+- **Issue #20 - text encoder config failure** - Detects `text_config` schema mismatch early and surfaces actionable guidance instead of opaque `mlx_video.generate_av failed with code 1`.
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.15` (structured text-encoder path/config diagnostics + missing `text_config` guardrails).
+
 ## [2.3.23] - 2026-03-14
 
 ### Changed
