@@ -166,6 +166,7 @@ class GenerationService: ObservableObject {
                 voiceoverText: request.voiceoverText,
                 voiceoverSource: request.voiceoverSource,
                 voiceoverVoice: request.voiceoverVoice,
+                modelId: request.modelId,
                 parameters: request.parameters,
                 videoPath: result.videoPath,
                 thumbnailPath: nil,
@@ -189,6 +190,7 @@ class GenerationService: ObservableObject {
                     voiceoverText: generationResult.voiceoverText,
                     voiceoverSource: generationResult.voiceoverSource,
                     voiceoverVoice: generationResult.voiceoverVoice,
+                    modelId: generationResult.modelId,
                     parameters: generationResult.parameters,
                     videoPath: generationResult.videoPath,
                     thumbnailPath: thumbnailPath,
@@ -209,7 +211,8 @@ class GenerationService: ObservableObject {
             
             // Generate voiceover if text is provided
             if request.hasVoiceover {
-                let voiceoverNote = LTXModelVariant.supportsBuiltInAudio ? " (layering over built-in audio)" : ""
+                let requestModel = LTXModelCatalog.resolvedModel(id: request.modelId)
+                let voiceoverNote = requestModel.supportsBuiltInAudio ? " (layering over built-in audio)" : ""
                 statusMessage = "Generating voiceover\(voiceoverNote)..."
                 do {
                     let source = AudioSource(rawValue: request.voiceoverSource) ?? .mlxAudio

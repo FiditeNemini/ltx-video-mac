@@ -70,7 +70,7 @@ If using a virtual environment, make sure to activate it first, or point the app
 ## First Run - Model Download
 
 {: .warning }
-**Important**: On your first generation, the app will download the LTX-2 Unified model (~42GB) from Hugging Face. This is a one-time download.
+**Important**: On your first generation, the app downloads the model selected in Preferences from Hugging Face. This is a one-time download.
 
 ### What to Expect
 
@@ -84,14 +84,16 @@ If using a virtual environment, make sure to activate it first, or point the app
 
 The app shows real-time download progress:
 - `Downloading: 8.4GB / 42GB (20%)`
+- `Downloading: 4.0GB / 19.4GB (21%)`
 
 If download is interrupted, it will resume from where it left off.
 
 ### Storage Location
 
-Models are cached by Hugging Face in:
+Models are cached by Hugging Face in folders such as:
 ```
 ~/.cache/huggingface/hub/models--notapalindrome--ltx2-mlx-av/
+~/.cache/huggingface/hub/models--dgrauet--ltx-2.3-mlx-distilled-q4/
 ```
 
 To free up space later, you can delete this folder (the model will re-download on next use).

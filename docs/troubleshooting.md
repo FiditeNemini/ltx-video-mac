@@ -69,7 +69,7 @@ Make sure you're installing to the same Python that the app is configured to use
 
 **Problem:** Model download appears stuck at a percentage.
 
-**Explanation:** The model is ~42GB. Progress updates every 1%, so each percent is ~420MB. Even at 100Mbps, each percent takes about 35 seconds.
+**Explanation:** Model size depends on your selection (`~19.4GB` or `~42GB`). Progress updates every 1%, so each percent can still take noticeable time.
 
 **Solutions:**
 1. Be patient - large model downloads take time
@@ -100,11 +100,12 @@ Make sure you're installing to the same Python that the app is configured to use
 To force a fresh download:
 ```bash
 rm -rf ~/.cache/huggingface/hub/models--notapalindrome--ltx2-mlx-av
+rm -rf ~/.cache/huggingface/hub/models--dgrauet--ltx-2.3-mlx-distilled-q4
 ```
 
-### "App downloaded Lightricks/LTX-2 (~150GB) - I only want the unified model"
+### "App downloaded Lightricks/LTX-2 (~150GB) - I only want app models"
 
-**Problem:** Cache grew to 400GB+ because both the unified model (~42GB) and Lightricks/LTX-2 (~150GB) were downloaded. The app now uses only the unified model (`notapalindrome/ltx2-mlx-av`).
+**Problem:** Cache grew to 400GB+ because both app models and Lightricks/LTX-2 (~150GB) were downloaded.
 
 **Solution:** Remove the unused Lightricks cache to free ~150GB:
 ```bash
@@ -115,7 +116,9 @@ du -sh ~/.cache/huggingface/hub/*
 rm -rf ~/.cache/huggingface/hub/models--Lightricks--LTX-2
 ```
 
-Keep `models--notapalindrome--ltx2-mlx-av` (~42GB) - that's the model the app uses.
+Keep the app model caches you use:
+- `models--notapalindrome--ltx2-mlx-av` (~42GB)
+- `models--dgrauet--ltx-2.3-mlx-distilled-q4` (~19.4GB)
 
 ---
 
@@ -141,6 +144,7 @@ cat /tmp/ltx_generation.log
 3. If model seems corrupted, delete and re-download:
    ```bash
    rm -rf ~/.cache/huggingface/hub/models--notapalindrome--ltx2-mlx-av
+   rm -rf ~/.cache/huggingface/hub/models--dgrauet--ltx-2.3-mlx-distilled-q4
    ```
 
 ### Black video output

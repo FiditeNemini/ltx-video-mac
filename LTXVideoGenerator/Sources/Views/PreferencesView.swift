@@ -1,13 +1,5 @@
 import SwiftUI
 
-/// Single model: LTX-2 Unified (audio+video). Legacy distilled model removed.
-enum LTXModelVariant {
-    static let modelRepo = "notapalindrome/ltx2-mlx-av"
-    static let displayName = "LTX-2 Unified"
-    static let downloadSize = "~42GB"
-    static let supportsBuiltInAudio = true
-}
-
 struct PreferencesView: View {
     @AppStorage("pythonPath") private var pythonPath = ""
     @AppStorage("outputDirectory") private var outputDirectory = ""
@@ -17,6 +9,7 @@ struct PreferencesView: View {
     @AppStorage("defaultAudioSource") private var defaultAudioSource = "elevenlabs"
     @AppStorage("enableGemmaPromptEnhancement") private var enableGemmaPromptEnhancement = false
     @AppStorage("saveAudioTrackSeparately") private var saveAudioTrackSeparately = false
+    @AppStorage(LTXModelCatalog.selectedModelIDKey) private var selectedModelID = LTXModelCatalog.defaultModelID
 
     @State private var pythonStatus: (success: Bool, message: String)?
     @State private var pythonDetails: PythonDetails?
@@ -28,6 +21,10 @@ struct PreferencesView: View {
     @State private var installMessage: String?
     @State private var isTestingElevenLabs = false
     @State private var elevenLabsTestResult: (success: Bool, message: String)?
+
+    private var selectedModel: LTXModel {
+        LTXModelCatalog.resolvedModel(id: selectedModelID)
+    }
     
     var body: some View {
         TabView {
@@ -208,13 +205,20 @@ struct PreferencesView: View {
                 }
                 
                 Section("Model") {
+                    Picker("Model", selection: $selectedModelID) {
+                        ForEach(LTXModelCatalog.all) { model in
+                            Text("\(model.displayName) (\(model.downloadSize))").tag(model.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "waveform.badge.checkmark")
                             .foregroundStyle(.green)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("LTX-2 Unified")
+                            Text(selectedModel.displayName)
                                 .font(.caption.bold())
-                            Text("Generates video with synchronized audio (~42GB download). Model cached in ~/.cache/huggingface/")
+                            Text("Uses \(selectedModel.repo) (\(selectedModel.downloadSize) download). Model cached in ~/.cache/huggingface/")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

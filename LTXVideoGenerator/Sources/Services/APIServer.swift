@@ -122,7 +122,7 @@ class APIServer: ObservableObject {
                 "endpoints": [
                     "GET /status": "Server and generation status",
                     "GET /queue": "Current generation queue",
-                    "POST /generate": "Submit generation request",
+                    "POST /generate": "Submit generation request (optional model_id)",
                     "DELETE /queue/:id": "Cancel a queued request"
                 ]
             ])
@@ -138,11 +138,17 @@ class APIServer: ObservableObject {
             
         case ("GET", "/queue"):
             let queue = generationService.queue.map { request -> [String: Any] in
-                [
+                let model = LTXModelCatalog.resolvedModel(id: request.modelId)
+                return [
                     "id": request.id.uuidString,
                     "prompt": request.prompt,
                     "status": request.status.rawValue,
                     "created_at": ISO8601DateFormatter().string(from: request.createdAt),
+                    "model": [
+                        "id": model.id,
+                        "repo": model.repo,
+                        "display_name": model.displayName,
+                    ],
                     "parameters": [
                         "width": request.parameters.width,
                         "height": request.parameters.height,
@@ -168,6 +174,16 @@ class APIServer: ObservableObject {
             let voiceoverVoice = body["voiceover_voice"] as? String ?? "af_heart"
             let musicEnabled = body["music_enabled"] as? Bool ?? false
             let musicGenre = body["music_genre"] as? String
+            let requestedModelID = body["model_id"] as? String
+            let requestedModelRepo = body["model_repo"] as? String
+            let resolvedModel: LTXModel
+            if let requestedModelID, let byID = LTXModelCatalog.model(id: requestedModelID) {
+                resolvedModel = byID
+            } else if let requestedModelRepo, let byRepo = LTXModelCatalog.model(repo: requestedModelRepo) {
+                resolvedModel = byRepo
+            } else {
+                resolvedModel = LTXModelCatalog.selectedModel()
+            }
             
             var params = GenerationParameters.default
             if let p = body["parameters"] as? [String: Any] {
@@ -188,6 +204,7 @@ class APIServer: ObservableObject {
                 voiceoverVoice: voiceoverVoice,
                 musicEnabled: musicEnabled,
                 musicGenre: musicGenre,
+                modelId: resolvedModel.id,
                 parameters: params
             )
             
@@ -195,6 +212,8 @@ class APIServer: ObservableObject {
             sendResponse(connection, status: 201, body: [
                 "id": request.id.uuidString,
                 "status": "queued",
+                "model_id": request.modelId,
+                "model_repo": resolvedModel.repo,
                 "message": "Generation request added to queue"
             ])
             

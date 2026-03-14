@@ -87,7 +87,7 @@ class LTXBridge {
     func loadModel(progressHandler: @escaping (String) -> Void) async throws {
         setupPythonPaths()
         
-        guard let python = pythonExecutable else {
+        guard pythonExecutable != nil else {
             throw LTXError.pythonNotConfigured
         }
         
@@ -106,7 +106,8 @@ class LTXBridge {
             throw LTXError.pythonNotConfigured
         }
         
-        progressHandler("MLX environment ready. Model will download on first generation (~42GB).")
+        let selectedModel = LTXModelCatalog.selectedModel()
+        progressHandler("MLX environment ready. Model will download on first generation (\(selectedModel.downloadSize)).")
         isModelLoaded = true
     }
     
@@ -124,11 +125,12 @@ class LTXBridge {
         let params = request.parameters
         let seed = params.seed ?? Int.random(in: 0..<Int(Int32.max))
         
-        let modelRepo = LTXModelVariant.modelRepo
+        let selectedModel = LTXModelCatalog.resolvedModel(id: request.modelId)
+        let modelRepo = selectedModel.repo
         let isImageToVideo = request.isImageToVideo
         let modeDescription = isImageToVideo ? "image-to-video" : "text-to-video"
-        progressHandler(0.1, "Starting \(modeDescription) with audio (\(LTXModelVariant.displayName))...")
-        if !request.disableAudio && params.fps != 24 {
+        progressHandler(0.1, "Starting \(modeDescription) (\(selectedModel.displayName))...")
+        if selectedModel.supportsBuiltInAudio && !request.disableAudio && params.fps != 24 {
             progressHandler(0.1, "Sync tip: speech alignment works best at 24 FPS (current: \(params.fps))")
         }
         
@@ -146,10 +148,11 @@ class LTXBridge {
                     prompt: request.prompt,
                     modelRepo: modelRepo,
                     temperature: request.gemmaTopP,
-                    sourceImagePath: request.sourceImagePath
-                ) { status in
+                    sourceImagePath: request.sourceImagePath,
+                    progressHandler: { status in
                     progressHandler(0.06, status)
-                }, !enhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    }
+                ), !enhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     generationPrompt = enhanced
                     preEnhancedPrompt = enhanced
                     progressHandler(0.07, "Prompt enhanced with Gemma")
@@ -409,7 +412,7 @@ except Exception as e:
                         let seconds = String(line.dropFirst("DOWNLOAD:STALL:".count))
                         progressHandler(0.01, "Download stalled for \(seconds)s. Stopping generation.")
                         failureHintLock.lock()
-                        capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf login` in Terminal if using gated models; then retry. To download the model manually, use: hf download notapalindrome/ltx2-mlx-av (saves to ~/.cache/huggingface)."
+                        capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf login` in Terminal if using gated models; then retry. To download the model manually, use: hf download \(modelRepo) (saves to ~/.cache/huggingface)."
                         failureHintLock.unlock()
                     } else if line.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
                         let detail = String(line.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)

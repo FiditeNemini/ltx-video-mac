@@ -22,6 +22,7 @@ struct PromptInputView: View {
     // Audio settings
     @AppStorage("elevenLabsApiKey") private var elevenLabsApiKey = ""
     @AppStorage("enableGemmaPromptEnhancement") private var enableGemmaPromptEnhancement = false
+    @AppStorage(LTXModelCatalog.selectedModelIDKey) private var selectedModelID = LTXModelCatalog.defaultModelID
     @State private var voiceoverSource: AudioSource = .mlxAudio
     @State private var selectedElevenLabsVoice: String = "21m00Tcm4TlvDq8ikWAM"
     @State private var selectedMLXVoice: String = "af_heart"
@@ -42,7 +43,10 @@ struct PromptInputView: View {
     @State private var isPreviewing = false
     @State private var previewError: String?
     @State private var previewStatusMessage = ""
-    
+
+    private var selectedModel: LTXModel {
+        LTXModelCatalog.resolvedModel(id: selectedModelID)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -239,7 +243,7 @@ struct PromptInputView: View {
             }
             
             // Audio included banner for unified model
-            if LTXModelVariant.supportsBuiltInAudio {
+            if selectedModel.supportsBuiltInAudio {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: disableAudio ? "waveform.badge.minus" : "waveform.badge.checkmark")
                         .foregroundColor(disableAudio ? .secondary : .green)
@@ -543,6 +547,11 @@ struct PromptInputView: View {
                 }
             )
         }
+        .onChange(of: selectedModelID) { _, _ in
+            if !selectedModel.supportsBuiltInAudio {
+                disableAudio = false
+            }
+        }
     }
 
     private func runPreview() async {
@@ -553,7 +562,7 @@ struct PromptInputView: View {
         do {
             let enhanced = try await LTXBridge.shared.previewEnhancedPrompt(
                 prompt: prompt,
-                modelRepo: LTXModelVariant.modelRepo,
+                modelRepo: selectedModel.repo,
                 temperature: gemmaTopP,
                 sourceImagePath: sourceImagePath
             ) { status in
@@ -585,6 +594,7 @@ struct PromptInputView: View {
             disableAudio: disableAudio,
             gemmaRepetitionPenalty: gemmaRepetitionPenalty,
             gemmaTopP: gemmaTopP,
+            modelId: selectedModelID,
             parameters: parameters
         )
         generationService.addToQueue(request)
@@ -603,6 +613,7 @@ struct PromptInputView: View {
             disableAudio: disableAudio,
             gemmaRepetitionPenalty: gemmaRepetitionPenalty,
             gemmaTopP: gemmaTopP,
+            modelId: selectedModelID,
             parameters: parameters
         )
         generationService.addToQueue(request)
@@ -622,6 +633,7 @@ struct PromptInputView: View {
                 disableAudio: disableAudio,
                 gemmaRepetitionPenalty: gemmaRepetitionPenalty,
                 gemmaTopP: gemmaTopP,
+                modelId: selectedModelID,
                 parameters: GenerationParameters(
                     numInferenceSteps: parameters.numInferenceSteps,
                     guidanceScale: parameters.guidanceScale,

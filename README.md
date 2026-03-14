@@ -15,7 +15,7 @@ A beautiful, native macOS application for generating AI videos with synchronized
 - **Apple Silicon Native** - Uses MLX framework for optimal performance on M-series chips
 - **Text-to-Video Generation** - Transform text prompts into video clips
 - **Image-to-Video** - Animate images into videos
-- **Built-in Audio Generation** - Default unified model generates synchronized audio with video automatically
+- **Built-in Audio Generation** - Available model variants generate synchronized audio with video automatically
 - **Voiceover Narration** - Add TTS voiceover using ElevenLabs (cloud) or MLX-Audio (local)
 - **Background Music** - Generate instrumental music with 54 genre presets via ElevenLabs Music API
 - **Auto Package Installer** - Missing Python packages are detected and can be installed with one click
@@ -30,7 +30,7 @@ A beautiful, native macOS application for generating AI videos with synchronized
 - **Apple Silicon** Mac (M1, M2, M3, M4 series)
 - **32GB RAM** minimum (64GB+ recommended for higher resolutions)
 - **Python 3.10+** installed (via Homebrew, pyenv, or system)
-- **~42GB disk space** for model weights (unified audio-video model)
+- **~20-42GB disk space** for model weights (depends on selected model)
 
 ## Installation
 
@@ -62,13 +62,15 @@ The `mlx-video-with-audio` package is available on [PyPI](https://pypi.org/proje
 
 ### 4. First Generation - Model Download
 
-**Important:** On first generation, the app will download the unified LTX-2 model (~42GB) from Hugging Face. This is a one-time download that may take 15-30 minutes depending on your internet connection.
+**Important:** On first generation, the app downloads your selected model from Hugging Face. This is a one-time download that may take 15-30 minutes depending on model size and internet connection.
 
 The model is cached in `~/.cache/huggingface/` and will not be re-downloaded on subsequent runs.
 
 Progress is shown in the app during download.
 
-**Note:** LTX-2 Unified (`notapalindrome/ltx2-mlx-av`) generates video with synchronized audio automatically.
+**Available models:**
+- LTX-2 Unified (`notapalindrome/ltx2-mlx-av`, ~42GB)
+- LTX-2.3 Distilled Q4 (`dgrauet/ltx-2.3-mlx-distilled-q4`, ~19.4GB)
 
 ## Usage
 
@@ -105,7 +107,7 @@ If enhancement fails for any reason, generation automatically falls back to your
 
 ### Built-in Audio (Default)
 
-The default unified model (`notapalindrome/ltx2-mlx-av`) generates synchronized audio alongside video automatically. No additional configuration needed - just generate and your video will have audio!
+Selected models generate synchronized audio alongside video automatically. No additional configuration needed - just generate and your video will have audio.
 
 For best speech/lip-sync alignment, use **24 FPS**.
 
@@ -211,7 +213,9 @@ open LTXVideoGenerator/LTXVideoGenerator.xcodeproj
 - **Frontend**: SwiftUI
 - **Python Bridge**: Subprocess execution with progress streaming
 - **ML Framework**: [MLX](https://github.com/ml-explore/mlx) (Apple's machine learning framework)
-- **Model**: [LTX-2 Unified](https://huggingface.co/notapalindrome/ltx2-mlx-av) (~42GB, generates video with synchronized audio)
+- **Models**:
+  - [LTX-2 Unified](https://huggingface.co/notapalindrome/ltx2-mlx-av) (~42GB, synchronized audio+video)
+  - [LTX-2.3 Distilled Q4](https://huggingface.co/dgrauet/ltx-2.3-mlx-distilled-q4) (~19.4GB, synchronized audio+video)
 - **Precision**: bfloat16
 
 ### Architecture
@@ -223,7 +227,7 @@ Generation uses a 2-stage pipeline:
 ## Troubleshooting
 
 ### "Model download stuck"
-The download progress updates every 1%. For the 42GB unified model, each percent is ~420MB. Be patient.
+The download progress updates every 1%. Download time depends on selected model size (~19.4GB or ~42GB). Be patient.
 
 ### "Out of memory"
 - Reduce resolution (512x320 is fastest)
@@ -237,8 +241,8 @@ The download progress updates every 1%. For the 42GB unified model, each percent
 - Then click "Auto Detect" in Preferences
 
 ### "LTX 2.3 conversion / LoRA compatibility"
-- This app currently targets the unified AV workflow around `notapalindrome/ltx2-mlx-av`.
-- Converting new upstream checkpoints (for example LTX 2.3 variants) can require package-level updates in `mlx-video-with-audio` before they run reliably here.
+- This app supports multiple AV model repos, including `notapalindrome/ltx2-mlx-av` and `dgrauet/ltx-2.3-mlx-distilled-q4`.
+- Converting additional upstream checkpoints can require package-level updates in `mlx-video-with-audio` before they run reliably here.
 - Standard LTX LoRA workflows are not guaranteed to transfer directly to the MLX-converted AV path without conversion tooling support.
 
 ## License

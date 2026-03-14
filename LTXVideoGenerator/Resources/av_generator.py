@@ -62,7 +62,7 @@ def main():
         "--model-repo",
         type=str,
         default="notapalindrome/ltx2-mlx-av",
-        help="Model repository ID",
+        help="Model repository ID (selected in app preferences)",
     )
     parser.add_argument(
         "--image",

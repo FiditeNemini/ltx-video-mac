@@ -131,7 +131,7 @@ def main():
     parser.add_argument(
         "--model-repo",
         default="notapalindrome/ltx2-mlx-av",
-        help="Model repository (unified AV)",
+        help="Generation model repository (from app selection)",
     )
     parser.add_argument(
         "--temperature",

@@ -223,6 +223,7 @@ struct HistoryView: View {
             voiceoverVoice: result.voiceoverVoice,
             musicEnabled: result.hasMusic,
             musicGenre: result.musicGenre,
+            modelId: result.modelId,
             parameters: params
         )
         generationService.addToQueue(request)
@@ -371,6 +372,7 @@ struct HistoryDetailView: View {
                         DetailItem(label: "Steps", value: "\(result.parameters.numInferenceSteps)")
                         DetailItem(label: "Guidance", value: String(format: "%.1f", result.parameters.guidanceScale))
                         DetailItem(label: "Seed", value: "\(result.seed)")
+                        DetailItem(label: "Model", value: result.model.displayName)
                     }
                     
                     Divider()

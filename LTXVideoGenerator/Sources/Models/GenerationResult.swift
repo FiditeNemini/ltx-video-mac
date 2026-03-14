@@ -9,6 +9,7 @@ struct GenerationResult: Identifiable, Codable {
     let voiceoverText: String  // Voiceover narration text (for audio generation)
     let voiceoverSource: String  // "elevenlabs" or "mlx-audio"
     let voiceoverVoice: String   // Voice ID for TTS
+    let modelId: String
     let parameters: GenerationParameters
     let videoPath: String
     let thumbnailPath: String?
@@ -59,6 +60,97 @@ struct GenerationResult: Identifiable, Codable {
         formatter.timeStyle = .short
         return formatter.string(from: completedAt)
     }
+
+    var model: LTXModel {
+        LTXModelCatalog.resolvedModel(id: modelId)
+    }
+
+    init(
+        id: UUID,
+        requestId: UUID,
+        prompt: String,
+        enhancedPrompt: String?,
+        negativePrompt: String,
+        voiceoverText: String,
+        voiceoverSource: String,
+        voiceoverVoice: String,
+        modelId: String,
+        parameters: GenerationParameters,
+        videoPath: String,
+        thumbnailPath: String?,
+        audioPath: String?,
+        musicPath: String?,
+        musicGenre: String?,
+        createdAt: Date,
+        completedAt: Date,
+        duration: TimeInterval,
+        seed: Int
+    ) {
+        self.id = id
+        self.requestId = requestId
+        self.prompt = prompt
+        self.enhancedPrompt = enhancedPrompt
+        self.negativePrompt = negativePrompt
+        self.voiceoverText = voiceoverText
+        self.voiceoverSource = voiceoverSource
+        self.voiceoverVoice = voiceoverVoice
+        self.modelId = modelId
+        self.parameters = parameters
+        self.videoPath = videoPath
+        self.thumbnailPath = thumbnailPath
+        self.audioPath = audioPath
+        self.musicPath = musicPath
+        self.musicGenre = musicGenre
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+        self.duration = duration
+        self.seed = seed
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case requestId
+        case prompt
+        case enhancedPrompt
+        case negativePrompt
+        case voiceoverText
+        case voiceoverSource
+        case voiceoverVoice
+        case modelId
+        case parameters
+        case videoPath
+        case thumbnailPath
+        case audioPath
+        case musicPath
+        case musicGenre
+        case createdAt
+        case completedAt
+        case duration
+        case seed
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        requestId = try container.decode(UUID.self, forKey: .requestId)
+        prompt = try container.decode(String.self, forKey: .prompt)
+        enhancedPrompt = try container.decodeIfPresent(String.self, forKey: .enhancedPrompt)
+        negativePrompt = try container.decode(String.self, forKey: .negativePrompt)
+        voiceoverText = try container.decode(String.self, forKey: .voiceoverText)
+        voiceoverSource = try container.decode(String.self, forKey: .voiceoverSource)
+        voiceoverVoice = try container.decode(String.self, forKey: .voiceoverVoice)
+        modelId = try container.decodeIfPresent(String.self, forKey: .modelId) ?? LTXModelCatalog.defaultModelID
+        parameters = try container.decode(GenerationParameters.self, forKey: .parameters)
+        videoPath = try container.decode(String.self, forKey: .videoPath)
+        thumbnailPath = try container.decodeIfPresent(String.self, forKey: .thumbnailPath)
+        audioPath = try container.decodeIfPresent(String.self, forKey: .audioPath)
+        musicPath = try container.decodeIfPresent(String.self, forKey: .musicPath)
+        musicGenre = try container.decodeIfPresent(String.self, forKey: .musicGenre)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        completedAt = try container.decode(Date.self, forKey: .completedAt)
+        duration = try container.decode(TimeInterval.self, forKey: .duration)
+        seed = try container.decode(Int.self, forKey: .seed)
+    }
 }
 
 extension GenerationResult {
@@ -72,6 +164,7 @@ extension GenerationResult {
             voiceoverText: "",
             voiceoverSource: "mlx-audio",
             voiceoverVoice: "af_heart",
+            modelId: LTXModelCatalog.defaultModelID,
             parameters: .default,
             videoPath: "/tmp/preview.mp4",
             thumbnailPath: nil,

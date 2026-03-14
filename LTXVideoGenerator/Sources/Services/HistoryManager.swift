@@ -164,6 +164,7 @@ class HistoryManager: ObservableObject {
                     voiceoverText: result.voiceoverText,
                     voiceoverSource: result.voiceoverSource,
                     voiceoverVoice: result.voiceoverVoice,
+                    modelId: result.modelId,
                     parameters: result.parameters,
                     videoPath: result.videoPath,
                     thumbnailPath: newPath,

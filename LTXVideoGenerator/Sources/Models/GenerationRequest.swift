@@ -1,5 +1,57 @@
 import Foundation
 
+struct LTXModel: Identifiable, Codable, Hashable {
+    let id: String
+    let repo: String
+    let displayName: String
+    let downloadSize: String
+    let supportsBuiltInAudio: Bool
+}
+
+enum LTXModelCatalog {
+    static let selectedModelIDKey = "selectedModelID"
+    static let defaultModelID = "ltx2_unified"
+
+    static let all: [LTXModel] = [
+        LTXModel(
+            id: "ltx2_unified",
+            repo: "notapalindrome/ltx2-mlx-av",
+            displayName: "LTX-2 Unified",
+            downloadSize: "~42GB",
+            supportsBuiltInAudio: true
+        ),
+        LTXModel(
+            id: "ltx23_distilled_q4",
+            repo: "dgrauet/ltx-2.3-mlx-distilled-q4",
+            displayName: "LTX-2.3 Distilled Q4",
+            downloadSize: "~19.4GB",
+            supportsBuiltInAudio: true
+        ),
+    ]
+
+    static var defaultModel: LTXModel {
+        all.first { $0.id == defaultModelID } ?? all[0]
+    }
+
+    static func model(id: String) -> LTXModel? {
+        all.first { $0.id == id }
+    }
+
+    static func model(repo: String) -> LTXModel? {
+        all.first { $0.repo == repo }
+    }
+
+    static func resolvedModel(id: String?) -> LTXModel {
+        guard let id, let model = model(id: id) else { return defaultModel }
+        return model
+    }
+
+    static func selectedModel(userDefaults: UserDefaults = .standard) -> LTXModel {
+        let id = userDefaults.string(forKey: selectedModelIDKey) ?? defaultModelID
+        return resolvedModel(id: id)
+    }
+}
+
 struct GenerationRequest: Identifiable, Codable, Equatable {
     let id: UUID
     let prompt: String
@@ -13,6 +65,7 @@ struct GenerationRequest: Identifiable, Codable, Equatable {
     let disableAudio: Bool       // Skip audio in unified AV model
     let gemmaRepetitionPenalty: Double  // Gemma prompt enhancement repetition penalty
     let gemmaTopP: Double              // Gemma prompt enhancement top-p sampling
+    let modelId: String                // Selected model ID from catalog
     var parameters: GenerationParameters
     let createdAt: Date
     var status: GenerationStatus
@@ -45,6 +98,7 @@ struct GenerationRequest: Identifiable, Codable, Equatable {
         disableAudio: Bool = false,
         gemmaRepetitionPenalty: Double = 1.2,
         gemmaTopP: Double = 0.9,
+        modelId: String = LTXModelCatalog.defaultModelID,
         parameters: GenerationParameters = .default,
         createdAt: Date = Date(),
         status: GenerationStatus = .pending
@@ -61,9 +115,49 @@ struct GenerationRequest: Identifiable, Codable, Equatable {
         self.disableAudio = disableAudio
         self.gemmaRepetitionPenalty = gemmaRepetitionPenalty
         self.gemmaTopP = gemmaTopP
+        self.modelId = modelId
         self.parameters = parameters
         self.createdAt = createdAt
         self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case prompt
+        case negativePrompt
+        case voiceoverText
+        case voiceoverSource
+        case voiceoverVoice
+        case sourceImagePath
+        case musicEnabled
+        case musicGenre
+        case disableAudio
+        case gemmaRepetitionPenalty
+        case gemmaTopP
+        case modelId
+        case parameters
+        case createdAt
+        case status
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        prompt = try container.decode(String.self, forKey: .prompt)
+        negativePrompt = try container.decode(String.self, forKey: .negativePrompt)
+        voiceoverText = try container.decode(String.self, forKey: .voiceoverText)
+        voiceoverSource = try container.decode(String.self, forKey: .voiceoverSource)
+        voiceoverVoice = try container.decode(String.self, forKey: .voiceoverVoice)
+        sourceImagePath = try container.decodeIfPresent(String.self, forKey: .sourceImagePath)
+        musicEnabled = try container.decode(Bool.self, forKey: .musicEnabled)
+        musicGenre = try container.decodeIfPresent(String.self, forKey: .musicGenre)
+        disableAudio = try container.decode(Bool.self, forKey: .disableAudio)
+        gemmaRepetitionPenalty = try container.decode(Double.self, forKey: .gemmaRepetitionPenalty)
+        gemmaTopP = try container.decode(Double.self, forKey: .gemmaTopP)
+        modelId = try container.decodeIfPresent(String.self, forKey: .modelId) ?? LTXModelCatalog.defaultModelID
+        parameters = try container.decode(GenerationParameters.self, forKey: .parameters)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        status = try container.decode(GenerationStatus.self, forKey: .status)
     }
 }
 
