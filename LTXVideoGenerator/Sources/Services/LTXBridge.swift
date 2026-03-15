@@ -407,16 +407,21 @@ except Exception as e:
                 for raw in stderr.components(separatedBy: "\n") {
                     let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                     if line.isEmpty { continue }
-                    let lower = line.lowercased()
+                    let cleanLine = line.replacingOccurrences(
+                        of: #"\u{001B}\[[0-9;]*[A-Za-z]"#,
+                        with: "",
+                        options: .regularExpression
+                    )
+                    let lower = cleanLine.lowercased()
                     
-                    if line.hasPrefix("DOWNLOAD:STALL:") {
-                        let seconds = String(line.dropFirst("DOWNLOAD:STALL:".count))
+                    if cleanLine.hasPrefix("DOWNLOAD:STALL:") {
+                        let seconds = String(cleanLine.dropFirst("DOWNLOAD:STALL:".count))
                         progressHandler(0.01, "Download stalled for \(seconds)s. Stopping generation.")
                         failureHintLock.lock()
                         capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf login` in Terminal if using gated models; then retry. To download the model manually, use: hf download \(modelRepo) (saves to ~/.cache/huggingface)."
                         failureHintLock.unlock()
-                    } else if line.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
-                        let detail = String(line.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    } else if cleanLine.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
+                        let detail = String(cleanLine.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
                         failureHintLock.lock()
                         capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.15\" and retry."
                         failureHintLock.unlock()
@@ -439,9 +444,9 @@ except Exception as e:
                         progressHandler(0.01, "Generation stopped: GPU memory limit reached")
                     }
                     
-                    if line.hasPrefix("STAGE:") {
+                    if cleanLine.hasPrefix("STAGE:") {
                         // Parse stage-aware progress: STAGE:1:STEP:3:8:Denoising
-                        let parts = line.components(separatedBy: ":")
+                        let parts = cleanLine.components(separatedBy: ":")
                         if parts.count >= 5,
                            let stage = Int(parts[1]),
                            let step = Int(parts[3]),
@@ -459,8 +464,8 @@ except Exception as e:
                             }
                             progressHandler(mappedProgress, message)
                         }
-                    } else if line.hasPrefix("STATUS:") {
-                        let message = String(line.dropFirst(7))
+                    } else if cleanLine.hasPrefix("STATUS:") {
+                        let message = String(cleanLine.dropFirst(7))
                         if message.contains("Stage 1") {
                             progressHandler(0.1, message)
                         } else if message.contains("Stage 2") || message.contains("Upsampling") {
@@ -474,14 +479,27 @@ except Exception as e:
                         } else {
                             progressHandler(0.05, message)
                         }
-                    } else if line.hasPrefix("MODEL:CACHED:") {
-                        let repo = String(line.dropFirst(13))
+                    } else if let stageMatch = lower.firstMatch(of: #/stage\s+([12])\s*\((\d+)\/(\d+)\)/#),
+                              let stage = Int(stageMatch.1),
+                              let step = Int(stageMatch.2),
+                              let total = Int(stageMatch.3),
+                              total > 0 {
+                        let stageProgress = Double(step) / Double(total)
+                        let mappedProgress = stage == 1
+                            ? 0.1 + (stageProgress * 0.4)
+                            : 0.5 + (stageProgress * 0.4)
+                        let message = stage == 1
+                            ? "Stage 1 (\(step)/\(total)): Generating at half resolution"
+                            : "Stage 2 (\(step)/\(total)): Refining at full resolution"
+                        progressHandler(mappedProgress, message)
+                    } else if cleanLine.hasPrefix("MODEL:CACHED:") {
+                        let repo = String(cleanLine.dropFirst(13))
                         progressHandler(0.08, "Model cached: \(repo)")
-                    } else if line.hasPrefix("DOWNLOAD:START:") {
-                        let repo = String(line.dropFirst(15))
+                    } else if cleanLine.hasPrefix("DOWNLOAD:START:") {
+                        let repo = String(cleanLine.dropFirst(15))
                         progressHandler(0.01, "Downloading model: \(repo)")
-                    } else if line.hasPrefix("DOWNLOAD:PROGRESS:") {
-                        let parts = line.dropFirst(18).split(separator: ":")
+                    } else if cleanLine.hasPrefix("DOWNLOAD:PROGRESS:") {
+                        let parts = cleanLine.dropFirst(18).split(separator: ":")
                         if parts.count >= 3 {
                             let currentBytes = Double(parts[0]) ?? 0
                             let totalBytes = Double(parts[1]) ?? 1
@@ -492,17 +510,17 @@ except Exception as e:
                             let mappedProgress = 0.01 + (Double(pct) / 100.0 * 0.07)
                             progressHandler(mappedProgress, String(format: "Downloading: %.1fGB / %.1fGB (%d%%)", currentGB, totalGB, pct))
                         }
-                    } else if line.hasPrefix("DOWNLOAD:COMPLETE:") {
+                    } else if cleanLine.hasPrefix("DOWNLOAD:COMPLETE:") {
                         progressHandler(0.08, "Model download complete")
-                    } else if line.contains("Downloading") || line.contains("Fetching") {
+                    } else if cleanLine.contains("Downloading") || cleanLine.contains("Fetching") {
                         // huggingface_hub tqdm output
                         let fileCountPattern = #/(\d+)%\|[^|]*\|\s*(\d+)/(\d+)/#
-                        if let match = line.firstMatch(of: fileCountPattern) {
+                        if let match = cleanLine.firstMatch(of: fileCountPattern) {
                             let currentFile = Int(match.2) ?? 0
                             let totalFiles = Int(match.3) ?? 1
                             var filePercent = Double(currentFile) / Double(max(totalFiles, 1))
                             var message = "Downloading: \(currentFile)/\(totalFiles) files"
-                            if let bytesMatch = line.firstMatch(of: #/\|\s*([\d.]+)([KMG]?)B?\/([\d.]+)([KMG]?)B?/#) {
+                            if let bytesMatch = cleanLine.firstMatch(of: #/\|\s*([\d.]+)([KMG]?)B?\/([\d.]+)([KMG]?)B?/#) {
                                 let curVal = Double(bytesMatch.1) ?? 0
                                 let totVal = Double(bytesMatch.3) ?? 1
                                 let unit = String(bytesMatch.2)

@@ -54,15 +54,25 @@ struct PromptInputView: View {
         parameters.estimatedVRAM
     }
 
+    private var machineMemoryGB: Int {
+        Int(ProcessInfo.processInfo.physicalMemory / 1_000_000_000)
+    }
+
+    private var warningThresholdGB: Int {
+        // Keep a sensible floor for smaller machines, but scale up for high-memory Macs.
+        max(36, Int(Double(machineMemoryGB) * 0.7))
+    }
+
     private var isHighMemoryRisk: Bool {
-        estimatedMemoryGB >= 36 || (parameters.width * parameters.height >= 768 * 512 && parameters.numFrames >= 97)
+        estimatedMemoryGB >= warningThresholdGB
+            || (parameters.width * parameters.height >= 768 * 512 && parameters.numFrames >= 97 && machineMemoryGB <= 64)
     }
 
     private var memoryRiskGuidance: String {
         let tilingHint = parameters.vaeTilingMode == "aggressive"
             ? ""
             : " Switch tiling to aggressive for lower peak memory."
-        return "This request is likely to hit Metal memory limits (estimated ~\(estimatedMemoryGB)GB). Recommended retry settings: 512x320 resolution, 25/33/49 frames, 24 FPS.\(tilingHint)"
+        return "This request may hit Metal memory limits (estimated ~\(estimatedMemoryGB)GB on a ~\(machineMemoryGB)GB machine). Recommended retry settings: 512x320 resolution, 25/33/49 frames, 24 FPS.\(tilingHint)"
     }
     
     var body: some View {

@@ -5,6 +5,15 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.29] - 2026-03-15
+
+### Fixed
+- **Progress reporting accuracy** - Removed synthetic progress bumps and now advance generation progress strictly from real parsed logs (`STAGE:`, `STATUS:`, `DOWNLOAD:*`, and tqdm download lines).
+- **Stage parsing resilience** - Added support for raw `stage 1/2 (n/m)` log lines so UI progress updates remain grounded in emitted model output.
+
+### Changed
+- **Memory risk warning threshold** - Warning now scales to machine memory (70% threshold floor of 36GB) to reduce false warnings on high-memory Macs while keeping guardrails for smaller systems.
+
 ## [2.3.28] - 2026-03-15
 
 ### Fixed
