@@ -5,6 +5,14 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.36] - 2026-03-18
+
+### Fixed
+- **Strict 2.3 upsampler selection** - 2.3 distilled runs now resolve only the LTX-2.3 spatial upsampler path for stage-2 latent refinement, preventing incompatible fallback weights from producing corrupted output.
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.19`.
+
 ## [2.3.35] - 2026-03-18
 
 ### Fixed
