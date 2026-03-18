@@ -5,6 +5,15 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.34] - 2026-03-18
+
+### Fixed
+- **Distilled Q4 generation path** - Added support for gated-attention transformer blocks (`9`-parameter scale-shift tables + prompt scale/shift modulation), BigVGAN/SnakeBeta vocoder loading, and targeted unified vocoder transpose handling for ConvTranspose upsamplers.
+- **Distilled VAE fallback compatibility** - Unified repos with unsupported VAE decoder block layouts now automatically fall back to `Lightricks/LTX-2` VAE for decode/encode paths, preventing decoder shape/broadcast crashes.
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.17`.
+
 ## [2.3.33] - 2026-03-18
 
 ### Fixed
