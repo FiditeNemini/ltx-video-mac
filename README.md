@@ -103,6 +103,8 @@ If enhancement fails for any reason, generation automatically falls back to your
 - Specify lighting: "golden hour lighting", "dramatic shadows"
 - Include motion: "waves crashing", "leaves falling"
 
+For more detailed, copy-paste-ready prompts, see **[Example Prompts](EXAMPLES.md)**.
+
 ## Audio Features
 
 ### Built-in Audio (Default)

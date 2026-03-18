@@ -25,7 +25,10 @@ struct ContentView: View {
         }
         .frame(minWidth: 1100, minHeight: 700)
         .alert("Error", isPresented: $showError, presenting: generationService.error) { _ in
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) {
+                generationService.error = nil
+                generationService.statusMessage = ""
+            }
         } message: { error in
             Text(error.localizedDescription)
         }

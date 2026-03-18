@@ -258,6 +258,9 @@ class GenerationService: ObservableObject {
             // Update queue
             queue[index].status = .completed
             
+            let outputDir = URL(fileURLWithPath: generationResult.videoPath).deletingLastPathComponent().path
+            statusMessage = "Video saved to \(outputDir)"
+            
         } catch is CancellationError {
             queue[index].status = .cancelled
             error = .cancelled
@@ -272,7 +275,6 @@ class GenerationService: ObservableObject {
         currentRequest = nil
         isProcessing = false
         progress = 0
-        statusMessage = ""
         
         // Remove completed/failed/cancelled from queue
         queue.removeAll { $0.status != .pending }

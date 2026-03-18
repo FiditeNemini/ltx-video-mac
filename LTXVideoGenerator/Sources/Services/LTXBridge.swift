@@ -432,7 +432,7 @@ except Exception as e:
                         let seconds = String(cleanLine.dropFirst("DOWNLOAD:STALL:".count))
                         progressHandler(0.01, "Download stalled for \(seconds)s. Stopping generation.")
                         failureHintLock.lock()
-                        capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf login` in Terminal if using gated models; then retry. To download the model manually, use: hf download \(modelRepo) (saves to ~/.cache/huggingface)."
+                        capturedFailureHint = "No download data received for \(seconds)s—connection may have stalled. Check your network; run `hf auth login` in Terminal if using gated models; then retry. To download the model manually, use: hf download \(modelRepo) (saves to ~/.cache/huggingface)."
                         failureHintLock.unlock()
                     } else if cleanLine.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
                         let detail = String(cleanLine.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -442,6 +442,10 @@ except Exception as e:
                     } else if lower.contains("keyerror: 'text_config'") {
                         failureHintLock.lock()
                         capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.15\" and retry."
+                        failureHintLock.unlock()
+                    } else if lower.contains("mlx-video-with-audio not installed") || lower.contains("cannot import name 'generate_av'") {
+                        failureHintLock.lock()
+                        capturedFailureHint = "The mlx-video-with-audio package is installed but incomplete or outdated. Update with: pip install -U mlx-video-with-audio and retry."
                         failureHintLock.unlock()
                     } else if lower.contains("valueerror: [conv] expect the input channels") {
                         failureHintLock.lock()

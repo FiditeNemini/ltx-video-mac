@@ -253,7 +253,7 @@ class PythonEnvironment {
             ("cv2", "opencv-python", false),
             ("tqdm", "tqdm", false),
             ("mlx_audio", "mlx-audio", false),  // For TTS audio generation
-            ("mlx_video", "mlx-video-with-audio", false)  // For unified AV model
+            ("mlx_video.generate_av", "mlx-video-with-audio", false)  // For unified AV model
         ]
         
         for (importName, pipName, _) in requiredPackages {
