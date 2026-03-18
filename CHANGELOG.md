@@ -5,6 +5,14 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.37] - 2026-03-18
+
+### Fixed
+- **Distilled AV decode parity** - Integrated the distilled BWE vocoder execution path, corrected LTX-2.3 upsampler checkpoint key/layout mapping, and tightened unified VAE Conv3d layout handling to avoid incorrect transpose paths.
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.20`.
+
 ## [2.3.36] - 2026-03-18
 
 ### Fixed
