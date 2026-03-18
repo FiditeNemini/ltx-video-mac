@@ -5,6 +5,14 @@ All notable changes to LTX Video Generator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.33] - 2026-03-18
+
+### Fixed
+- **Distilled/quantized model support** - Models using split-weight format (e.g. `dgrauet/ltx-2.3-mlx-distilled-q4`) now load correctly. Previously failed with "Text encoder configuration mismatch" because the model detection only recognized single-file `model.safetensors` layouts.
+
+### Changed
+- Require `mlx-video-with-audio>=0.1.16` (split-weight model format support for quantized/distilled repos).
+
 ## [2.3.31] - 2026-03-15
 
 ### Fixed
