@@ -6,10 +6,12 @@ struct LTXModel: Identifiable, Codable, Hashable {
     let displayName: String
     let downloadSize: String
     let supportsBuiltInAudio: Bool
+    let qualityWarning: String?
 }
 
 enum LTXModelCatalog {
     static let selectedModelIDKey = "selectedModelID"
+    // Keep default on Unified unless the user explicitly changes it.
     static let defaultModelID = "ltx2_unified"
 
     static let all: [LTXModel] = [
@@ -18,14 +20,16 @@ enum LTXModelCatalog {
             repo: "notapalindrome/ltx2-mlx-av",
             displayName: "LTX-2 Unified",
             downloadSize: "~42GB",
-            supportsBuiltInAudio: true
+            supportsBuiltInAudio: true,
+            qualityWarning: nil
         ),
         LTXModel(
             id: "ltx23_distilled_q4",
             repo: "dgrauet/ltx-2.3-mlx-distilled-q4",
             displayName: "LTX-2.3 Distilled Q4",
             downloadSize: "~19.4GB",
-            supportsBuiltInAudio: true
+            supportsBuiltInAudio: true,
+            qualityWarning: "Experimental: this model may be unstable and does not yet produce consistently high-quality video. Prefer LTX-2 Unified for best results."
         ),
     ]
 

@@ -230,6 +230,16 @@ struct PreferencesView: View {
                         }
                     }
                     .padding(.vertical, 4)
+
+                    if let qualityWarning = selectedModel.qualityWarning {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(qualityWarning)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     
                     Toggle("Auto-load model on startup", isOn: $autoLoadModel)
                 }

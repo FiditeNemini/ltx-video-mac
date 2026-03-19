@@ -444,7 +444,6 @@ struct HistoryDetailView: View {
     
     private func loadPlayer() {
         player = AVPlayer(url: result.videoURL)
-        player?.play()
         
         // Loop playback
         NotificationCenter.default.addObserver(
