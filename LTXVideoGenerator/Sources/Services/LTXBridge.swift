@@ -349,7 +349,8 @@ try:
     line_buf = ""
     download_in_progress = False
     last_download_activity = None  # None = not in download phase yet; set when first download line seen
-    download_stall_timeout = 300  # 5 min without any data once download has started
+    # Large models can go quiet between tqdm updates; heartbeats + long window avoid false kills.
+    download_stall_timeout = 7200  # 2 hours without *any* subprocess output while downloading
     stdout_fd = process.stdout.fileno()
     while True:
         if process.stdout is None:
@@ -501,11 +502,11 @@ except Exception as e:
                     } else if cleanLine.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
                         let detail = String(cleanLine.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
                         failureHintLock.lock()
-                        capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.20\" and retry."
+                        capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.24\" and retry."
                         failureHintLock.unlock()
                     } else if lower.contains("keyerror: 'text_config'") {
                         failureHintLock.lock()
-                        capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.20\" and retry."
+                        capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.24\" and retry."
                         failureHintLock.unlock()
                     } else if lower.contains("mlx-video-with-audio not installed") || lower.contains("cannot import name 'generate_av'") {
                         failureHintLock.lock()
@@ -513,7 +514,7 @@ except Exception as e:
                         failureHintLock.unlock()
                     } else if lower.contains("valueerror: [conv] expect the input channels") {
                         failureHintLock.lock()
-                        capturedFailureHint = "Detected MLX VAE channel mismatch during decoding. Update with: pip install -U \"mlx-video-with-audio>=0.1.23\". If it persists, your checkpoint may need `embedded_config.json` VAE `timestep_conditioning` — file an issue with logs."
+                        capturedFailureHint = "Detected MLX VAE channel mismatch during decoding. Update with: pip install -U \"mlx-video-with-audio>=0.1.24\". If it persists, your checkpoint may need `embedded_config.json` VAE `timestep_conditioning` — file an issue with logs."
                         failureHintLock.unlock()
                     } else if lower.contains("kiogpucommandbuffercallbackerroroutofmemory")
                                 || lower.contains("insufficient memory")
@@ -580,6 +581,9 @@ except Exception as e:
                     } else if cleanLine.hasPrefix("DOWNLOAD:START:") {
                         let repo = String(cleanLine.dropFirst(15))
                         progressHandler(0.01, "Downloading model: \(repo)")
+                    } else if cleanLine.hasPrefix("DOWNLOAD:HEARTBEAT:") {
+                        let repo = String(cleanLine.dropFirst(18))
+                        progressHandler(0.04, "Downloading \(repo)… (still working — large files can look idle)")
                     } else if cleanLine.hasPrefix("DOWNLOAD:PROGRESS:") {
                         let parts = cleanLine.dropFirst(18).split(separator: ":")
                         if parts.count >= 3 {
