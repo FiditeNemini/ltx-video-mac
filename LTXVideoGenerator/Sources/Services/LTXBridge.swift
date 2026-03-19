@@ -170,6 +170,10 @@ class LTXBridge {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\n", with: "\\n")
+        let escapedNegativePrompt = request.negativePrompt
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
         
         // Escape source image path if provided
         let escapedImagePath = request.sourceImagePath?
@@ -201,6 +205,24 @@ def log(msg):
     print(msg, file=log_file, flush=True)
     print(msg, file=sys.stderr, flush=True)
 
+# region agent log
+def debug_log(location, message, data, hypothesis_id):
+    try:
+        payload = {
+            "sessionId": "ccd9de",
+            "runId": os.environ.get("LTX_DEBUG_RUN_ID", "swift-bridge"),
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with open("/Users/jc/projects/ltxmac/.cursor/debug-ccd9de.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\\n")
+    except Exception:
+        pass
+# endregion
+
 try:
     log("=== LTX-2 Unified AV Generation Started ===")
     log(f"Python: {sys.executable}")
@@ -211,12 +233,48 @@ try:
     
     model_repo = "\(modelRepo)"
     log(f"Model: {model_repo}")
+    local_mlx_video_repo = os.path.expanduser("~/projects/mlx-video-with-audio")
+    use_local_mlx_video_repo = os.path.exists(os.path.join(local_mlx_video_repo, "mlx_video", "generate_av.py"))
+    if use_local_mlx_video_repo and local_mlx_video_repo not in sys.path:
+        sys.path.insert(0, local_mlx_video_repo)
+    
+    # region agent log
+    try:
+        import mlx_video
+        from mlx_video.version import __version__ as mlx_video_version
+        debug_log(
+            "LTXBridge.swift:inline-python",
+            "Resolved mlx_video runtime package",
+            {
+                "python": sys.executable,
+                "moduleFile": getattr(mlx_video, "__file__", None),
+                "modulePath0": sys.path[0] if sys.path else None,
+                "version": mlx_video_version,
+                "modelRepo": model_repo,
+                "localRepoCandidate": local_mlx_video_repo,
+                "usingLocalRepo": use_local_mlx_video_repo,
+            },
+            "H1",
+        )
+    except Exception as debug_exc:
+        debug_log(
+            "LTXBridge.swift:inline-python",
+            "Failed to resolve mlx_video runtime package",
+            {
+                "python": sys.executable,
+                "error": repr(debug_exc),
+                "modelRepo": model_repo,
+            },
+            "H1",
+        )
+    # endregion
     
     # Image-to-video mode
     source_image_path = "\(escapedImagePath)" if "\(escapedImagePath)" else None
     mode = "image-to-video" if source_image_path else "text-to-video"
     
     prompt = '''\(escapedPrompt)'''
+    negative_prompt = '''\(escapedNegativePrompt)'''
     log(f"Prompt: {prompt[:100]}...")
     log(f"Size: \(genWidth)x\(genHeight), \(params.numFrames) frames")
     log(f"Seed: \(seed)")
@@ -238,11 +296,15 @@ try:
             "--num-frames", str(\(params.numFrames)),
             "--seed", str(\(seed)),
             "--fps", str(\(params.fps)),
+            "--steps", str(\(params.numInferenceSteps)),
+            "--cfg-scale", str(\(params.guidanceScale)),
             "--output-path", "\(outputPath)",
             "--model-repo", model_repo,
             "--tiling", "\(params.vaeTilingMode)",
             "--no-audio",
         ]
+        if negative_prompt.strip():
+            cmd.extend(["--negative-prompt", negative_prompt])
         log(f"Mode: {mode} (audio disabled)")
     else:
         cmd = [
@@ -253,10 +315,14 @@ try:
             "--num-frames", str(\(params.numFrames)),
             "--seed", str(\(seed)),
             "--fps", str(\(params.fps)),
+            "--steps", str(\(params.numInferenceSteps)),
+            "--cfg-scale", str(\(params.guidanceScale)),
             "--output-path", "\(outputPath)",
             "--model-repo", model_repo,
             "--tiling", "\(params.vaeTilingMode)",
         ]
+        if negative_prompt.strip():
+            cmd.extend(["--negative-prompt", negative_prompt])
         log(f"Mode: {mode} (with audio)")
     
     # Add image conditioning if provided
@@ -271,10 +337,31 @@ try:
     
     log("Starting generation...")
     log(f"Command: {' '.join(cmd)}")
+    child_env = os.environ.copy()
+    child_env["LTX_DEBUG_RUN_ID"] = "swift-bridge-config-audit"
+    child_env["LTX_DEBUG_STAGE1_FRAME"] = "/Users/jc/projects/ltxmac/.cursor/stage1-current-ccd9de.png"
+    if use_local_mlx_video_repo:
+        existing_pythonpath = child_env.get("PYTHONPATH", "")
+        child_env["PYTHONPATH"] = (
+            f"{local_mlx_video_repo}:{existing_pythonpath}"
+            if existing_pythonpath else local_mlx_video_repo
+        )
+        # region agent log
+        debug_log(
+            "LTXBridge.swift:inline-python",
+            "Configured child PYTHONPATH for local mlx_video repo",
+            {
+                "pythonpath": child_env["PYTHONPATH"],
+                "localRepo": local_mlx_video_repo,
+            },
+            "H5",
+        )
+        # endregion
     
     # Run the CLI module and stream combined output (binary read so we see tqdm \\r updates)
     process = subprocess.Popen(
         cmd,
+        env=child_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
@@ -437,11 +524,11 @@ except Exception as e:
                     } else if cleanLine.hasPrefix("TEXT_ENCODER_CONFIG_ERROR:") {
                         let detail = String(cleanLine.dropFirst("TEXT_ENCODER_CONFIG_ERROR:".count)).trimmingCharacters(in: .whitespacesAndNewlines)
                         failureHintLock.lock()
-                        capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.16\" and retry."
+                        capturedFailureHint = "Text encoder configuration mismatch detected. \(detail) Update with: pip install -U \"mlx-video-with-audio>=0.1.20\" and retry."
                         failureHintLock.unlock()
                     } else if lower.contains("keyerror: 'text_config'") {
                         failureHintLock.lock()
-                        capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.16\" and retry."
+                        capturedFailureHint = "Text encoder config mismatch (`text_config` missing). This usually means an outdated or misconfigured `mlx-video-with-audio` install. Update with: pip install -U \"mlx-video-with-audio>=0.1.20\" and retry."
                         failureHintLock.unlock()
                     } else if lower.contains("mlx-video-with-audio not installed") || lower.contains("cannot import name 'generate_av'") {
                         failureHintLock.lock()

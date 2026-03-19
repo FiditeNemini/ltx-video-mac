@@ -5,10 +5,9 @@ This script wraps the mlx_video.generate_av module for generating
 video with synchronized audio in a single pass.
 """
 
-import sys
-import os
 import argparse
 import json
+import sys
 
 
 def status_output(message: str):
@@ -19,7 +18,10 @@ def status_output(message: str):
 
 def progress_output(stage: int, step: int, total_steps: int, message: str = ""):
     """Output progress for Swift to parse."""
-    print(f"STAGE:{stage}:STEP:{step}:{total_steps}:{message}", file=sys.stderr)
+    print(
+        f"STAGE:{stage}:STEP:{step}:{total_steps}:{message}",
+        file=sys.stderr,
+    )
     sys.stderr.flush()
 
 
@@ -28,7 +30,11 @@ def main():
         description="LTX-2 Unified Audio-Video Generation with MLX"
     )
     parser.add_argument(
-        "--prompt", "-p", type=str, required=True, help="Text prompt for generation"
+        "--prompt",
+        "-p",
+        type=str,
+        required=True,
+        help="Text prompt for generation",
     )
     parser.add_argument(
         "--height",
@@ -49,14 +55,51 @@ def main():
         "-n",
         type=int,
         default=65,
-        help="Number of frames (should be 8n+1: 9,17,25,33,41,49,57,65,73,81,89,97)",
+        help=(
+            "Number of frames " "(should be 8n+1: 9,17,25,33,41,49,57,65,73,81,89,97)"
+        ),
     )
     parser.add_argument(
-        "--seed", "-s", type=int, default=42, help="Random seed for reproducibility"
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility",
     )
-    parser.add_argument("--fps", type=int, default=24, help="Frames per second")
     parser.add_argument(
-        "--output-path", "-o", type=str, default="output.mp4", help="Output video path"
+        "--fps",
+        type=int,
+        default=24,
+        help="Frames per second",
+    )
+    parser.add_argument(
+        "--num-inference-steps",
+        "--steps",
+        dest="num_inference_steps",
+        type=int,
+        default=30,
+        help="Total denoising steps across both stages",
+    )
+    parser.add_argument(
+        "--negative-prompt",
+        type=str,
+        default=None,
+        help="Negative prompt used for classifier-free guidance",
+    )
+    parser.add_argument(
+        "--cfg-scale",
+        "--guidance-scale",
+        dest="cfg_scale",
+        type=float,
+        default=3.0,
+        help="Classifier-free guidance scale (1.0 disables guidance)",
+    )
+    parser.add_argument(
+        "--output-path",
+        "-o",
+        type=str,
+        default="output.mp4",
+        help="Output video path",
     )
     parser.add_argument(
         "--model-repo",
@@ -122,7 +165,9 @@ def main():
         is_i2v = args.image is not None
         mode_str = "I2V" if is_i2v else "T2V"
         status_output(
-            f"Starting {mode_str} generation with audio: {args.width}x{args.height}, {args.num_frames} frames"
+            "Starting "
+            f"{mode_str} generation with audio: "
+            f"{args.width}x{args.height}, {args.num_frames} frames"
         )
 
         # Build generation kwargs
@@ -131,16 +176,20 @@ def main():
             "height": args.height,
             "width": args.width,
             "num_frames": args.num_frames,
+            "num_inference_steps": args.num_inference_steps,
+            "cfg_scale": args.cfg_scale,
             "model_repo": args.model_repo,
             "output": args.output_path,
         }
+        if args.negative_prompt:
+            gen_kwargs["negative_prompt"] = args.negative_prompt
 
         # Add image conditioning if provided
         if args.image:
             gen_kwargs["image"] = args.image
             gen_kwargs["image_strength"] = args.image_strength
             status_output(
-                f"Using source image: {args.image} (strength={args.image_strength})"
+                "Using source image: " f"{args.image} (strength={args.image_strength})"
             )
 
         # Pass tiling mode if supported
@@ -175,7 +224,11 @@ def main():
         print(json.dumps(result))
 
     except ImportError as e:
-        error_msg = f"mlx-video-with-audio not installed: {e}. Run: pip install git+https://github.com/james-see/mlx-video-with-audio.git"
+        error_msg = (
+            "mlx-video-with-audio not installed: "
+            f"{e}. Run: pip install "
+            "git+https://github.com/james-see/mlx-video-with-audio.git"
+        )
         status_output(f"ERROR: {error_msg}")
         print(json.dumps({"success": False, "error": error_msg}))
         sys.exit(1)
